@@ -1,0 +1,243 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liste des Abonnées</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+    
+
+    <style>
+        #styledText {
+            font-weight: bold;
+        }
+        .expired { color: red; }
+        .notStarted { color: blue; }
+        .active { color: green; }
+        .bg-custom {
+            background-color: #007bff;
+        }
+        .text-custom-white {
+            color: #ffffff;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+        }
+        .custom-title {
+            font-size: 2.5rem;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 3rem;
+            padding: 1rem;
+            background-color: #f8f9fa;
+        }
+    </style>
+
+</head>
+<nav class="navbar navbar-light bg-custom mx-auto">
+    <a class="navbar-brand text-custom-white" href="#" >
+        <img src="/static/captures/logo-1.jpg" width="45" height="50" alt="">
+        Parking
+    </a>
+</nav>
+<body>
+    <div class="container mt-4">
+    <div class="text-center">
+        <h2 class="display-4 mb-4" style="color: #007bff;">Liste des Abonnées</h2>
+    </div>
+
+
+    <table class="table table-bordered">
+        <thead class="thead-light">
+            <tr>
+                <th scope="col">Nom</th>
+                <th scope="col">Periode d'Abonnement</th>
+                <th scope="col">Matricule</th>
+                <th scope="col">Model</th>
+                <th scope="col">Temps</th>
+                <th scope="col">Etat</th>
+                <th scope="col">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+    {% for user in users %}
+            {% if user.subscriptions %}
+                    {% for subscription in user.subscriptions %}
+                        <tr id="subscription-{{ user.id }}-{{ loop.index }}">
+                            <td><strong>{{ user.username }}</strong></td>
+                            <td>{{ subscription.start_datetime.strftime('%Y-%m-%d %H:%M') }} to {{ subscription.end_datetime.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>{{ subscription.car.matricule }}</td>
+                            <td>{{ subscription.car.model }}</td>
+                            <td id="remaining-time-{{ user.id }}-{{ loop.index }}"><span></span></td>
+                            <td id="styledText-{{ user.id }}-{{ loop.index }}"></td>
+                            <td>
+                                <a class="btn btn-warning" href="#" id="cancelSubscriptionLink-{{ user.id }}-{{ loop.index }}" onclick="cancelSubscription({{ user.id }}, {{ loop.index }}, {{ subscription.id }})">Cancel Subscription</a>
+                                <div id="cancelMessage-{{ user.id }}-{{ loop.index }}" style="display: none; color: red;">Subscription Cancled</div>
+                            </td>
+                        </tr>
+                        
+
+                            <script>
+                                var displayElement = document.getElementById("displayText-{{ user.id }}-{{ loop.index }}");
+                                var endDatetime{{ user.id }}{{ loop.index }} = new Date('{{ subscription.end_datetime }}');
+                                var countdownElement{{ user.id }}{{ loop.index }} = document.getElementById('remaining-time-{{ user.id }}-{{ loop.index }}').querySelector('span');
+                                var startDatetime{{ user.id }}{{ loop.index }} = new Date('{{ subscription.start_datetime }}');
+
+                                
+
+                                function updateRemainingTime{{ user.id }}{{ loop.index }}() {
+                                    var now = new Date();
+                                    var remainingTime = endDatetime{{ user.id }}{{ loop.index }} - now;
+
+                                    var days = Math.floor(remainingTime / (1000 * 60 * 60 * 24));
+                                    var hours = Math.floor((remainingTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                                    var minutes = Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60));
+                                    var seconds = Math.floor((remainingTime % (1000 * 60)) / 1000);
+
+                                    countdownElement{{ user.id }}{{ loop.index }}.textContent = days + "d " + hours + "h " + minutes + "m " + seconds + "s ";
+
+                                    var cancelSubscriptionLink = document.getElementById("cancelSubscriptionLink-{{ user.id }}-{{ loop.index }}");
+                                    
+                                    if (remainingTime <= 0) {
+                                        clearInterval(timer{{ user.id }}{{ loop.index }});
+                                        countdownElement{{ user.id }}{{ loop.index }}.textContent = "Expired";
+                                        removeSubscription_{{ user.id }}_{{ loop.index }}('{{ subscription.id }}');
+
+                                        var styledTextElement = document.getElementById("styledText-{{ user.id }}-{{ loop.index }}");
+                                        styledTextElement.innerHTML = "<p>Subscription Expired</p>";
+                                        styledTextElement.style.color = "red";
+
+                                        cancelSubscriptionLink.style.display = "none";
+
+                                        
+
+                                    } else if (now.getTime() < startDatetime{{ user.id }}{{ loop.index }}) {
+                                        var styledTextElement = document.getElementById("styledText-{{ user.id }}-{{ loop.index }}");
+                                        styledTextElement.innerHTML = "<p>Subscription not started yet</p>";
+                                        styledTextElement.style.color = "blue";
+                                    } else {
+                                        var styledTextElement = document.getElementById("styledText-{{ user.id }}-{{ loop.index }}");
+                                        styledTextElement.innerHTML = "<p>Subscription Active</p>";
+                                        styledTextElement.style.color = "green";
+                                    }
+                                }
+
+                                function removeSubscription_{{ user.id }}_{{ loop.index }}(subscriptionId) {
+                                    var xhr = new XMLHttpRequest();
+                                    xhr.open('DELETE', '/delete_subscription/' + subscriptionId, true);
+                                    xhr.onreadystatechange = function () {
+                                        if (xhr.readyState === 4) {
+                                            if (xhr.status === 200) {
+                                                alert('Subscription successfully removed!');
+                                            } else {
+                                                alert('Error removing subscription. Please try again.');
+                                            }
+                                        }
+                                    };
+                                    xhr.send();
+                                }
+
+                                updateRemainingTime{{ user.id }}{{ loop.index }}();
+                                var timer{{ user.id }}{{ loop.index }} = setInterval(updateRemainingTime{{ user.id }}{{ loop.index }}, 1000);
+                                function cancelSubscription(userId, index, subscriptionId) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('DELETE', '/delete_subscription/' + subscriptionId, true);
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === 4) {
+                if (xhr.status === 200) {
+                    alert('Subscription successfully removed!');
+                    clearInterval(window['timer' + userId + index]);
+
+                    // Update the display
+                    var cancelMessageElement = document.getElementById("cancelMessage-" + userId + "-" + index);
+                    var styledTextElement = document.getElementById("styledText-" + userId + "-" + index);
+
+                    // Remove "Subscription Active" message
+                    styledTextElement.innerHTML = "";
+                    //styledTextElement.style.color = "red";
+
+                    // Hide "Cancel Subscription" link and show the cancellation message
+                    document.getElementById("cancelSubscriptionLink-" + userId + "-" + index).style.display = "none";
+                    cancelMessageElement.style.display = "block";
+                } else {
+                    alert('Error removing subscription. Please try again.');
+                }
+            }
+        };
+        xhr.send();
+    }
+                            </script>
+
+                              
+
+                        
+{% endfor %}
+{% else %}
+   
+{% endif %}
+{% endfor %}
+</tbody>
+</table>
+
+<form action="{{ url_for('subscribtio') }}" method="get">
+<button type="submit" class="btn btn-primary">Abonner</button>
+</form>
+</div>
+
+<br></br>
+<footer class="bg-body-tertiary text-center text-lg-start">
+    <!-- Copyright -->
+    <div class="text-center p-3" style="background-color: rgba(0, 0, 0, 0.05);">
+      ©2023 Copyright:
+      <a class="text-body" href="http://127.0.0.1:5000/subscribtio?">ParkMyCar.com</a>
+    </div>
+    <!-- Copyright -->
+  </footer>
+
+  
+  
+    <button onclick="captureImage()">Capture Image</button>
+    <br>
+    <div id="extracted_text"></div>
+
+    <script>
+        function captureImage() {
+            fetch('/capture_image')
+                .then(response => response.text())
+                .then(message => {
+                    alert(message);
+                    // Extracted text is displayed below the video feed
+                    document.getElementById('extracted_text').innerText = message.includes('Extracted text:') ? message.split('Extracted text:')[1].trim() : '';
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error during image capture.');
+                });
+        }
+    </script>
+
+  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
